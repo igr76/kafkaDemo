@@ -1,0 +1,27 @@
+Ниже представлен полный пример, который демонстрирует отправку и получение сообщения с использованием Apache Kafka, запущенной в Docker. Всё, что вам потребуется – Docker и Java.
+
+1. Запуск Kafka в Docker
+   Создайте файл docker-compose.yml:
+
+yaml
+version: '3'
+services:
+zookeeper:
+image: confluentinc/cp-zookeeper:latest
+environment:
+ZOOKEEPER_CLIENT_PORT: 2181
+ZOOKEEPER_TICK_TIME: 2000
+ports:
+- "2181:2181"
+
+kafka:
+image: confluentinc/cp-kafka:latest
+depends_on:
+- zookeeper
+  ports:
+- "9092:9092"
+  environment:
+  KAFKA_BROKER_ID: 1
+  KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
