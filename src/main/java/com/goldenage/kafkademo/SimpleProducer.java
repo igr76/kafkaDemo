@@ -2,53 +2,40 @@ package com.goldenage.kafkademo;
 
 import org.apache.kafka.clients.producer.*;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
 public class SimpleProducer  {
 
-    public static void main(String[] args) {
-        // Настройки Producer
+
+    private final Producer<String, String> producer;
+
+    public SimpleProducer() {
         Properties props = new Properties();
         props.put("bootstrap.servers", "localhost:9092");
-        props.put("key.serializer",
-                "org.apache.kafka.common.serialization.StringSerializer");
-        props.put("value.serializer",
-                "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("acks", "all");
+        props.put("retries", 3);
 
-        // Дополнительные настройки
-        props.put("acks", "all"); // гарантия доставки
-        props.put("retries", 3); // количество повторов
+        this.producer = new KafkaProducer<>(props);
+    }
 
-        // Создание Producer
-        Producer<String, String> producer =
-                new KafkaProducer<>(props);
+    /**
+     * Отправляет сообщение в указанный топик.
+     */
+    public void sendMessage(String topic, String key, String value) {
+        ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, value);
 
         try {
-            // Отправка сообщения
-            ProducerRecord<String, String> record =
-                    new ProducerRecord<>("my-topic", "key1", "Hello Kafka!");
-
-            // Асинхронная отправка с callback
-            producer.send(record, new Callback() {
-                @Override
-                public void onCompletion(RecordMetadata metadata, Exception e) {
-                    if (e == null) {
-                        System.out.println("Отправлено успешно: " +
-                                "topic=" + metadata.topic() +
-                                ", partition=" + metadata.partition() +
-                                ", offset=" + metadata.offset());
-                    } else {
-                        e.printStackTrace();
-                    }
-                }
-            });
-
-            // Синхронная отправка
-            // RecordMetadata metadata = producer.send(record).get();
-
-        } catch (Exception e) {
+            RecordMetadata metadata = producer.send(record).get();
+            System.out.printf("[PRODUCER] Отправлено: topic=%s, partition=%d, offset=%d, key=%s, value=%s%n",
+                    metadata.topic(), metadata.partition(), metadata.offset(), key, value);
+        } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
-        } finally {
-            producer.close();
         }
+    }
+
+    public void close() {
+        producer.close();
     }
 }
